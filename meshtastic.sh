@@ -40,7 +40,7 @@ ${BOLD}Commands:${NC}
   ${CYAN}send${NC}     --channel "msg"          Send to channel
   ${CYAN}send${NC}     --dm <nodeId> "msg"       Send DM to node
   ${CYAN}reply${NC}    "msg"                     Reply to last message
-  ${CYAN}inbox${NC}    [--tail N] [--unread]     Show inbox messages
+  ${CYAN}inbox${NC}    [--tail N] [--logs]        Show pending messages (or history with --logs)
   ${CYAN}status${NC}                             Daemon & connection status
   ${CYAN}nodes${NC}                              List visible mesh nodes
   ${CYAN}health${NC}                             JSON health check (for heartbeat)
@@ -50,7 +50,8 @@ ${BOLD}Examples:${NC}
   meshtastic.sh send --channel "Hello mesh!"
   meshtastic.sh send --dm "!a1b2c3d4" "Hey there"
   meshtastic.sh reply "Got it, thanks!"
-  meshtastic.sh inbox --tail 5 --unread
+  meshtastic.sh inbox --tail 5
+  meshtastic.sh inbox --logs          # Full history from daemon logs
   meshtastic.sh status
 EOF
 }
@@ -117,17 +118,32 @@ cmd_reply() {
   fi
 }
 
-# ── Inbox ─────────────────────────────────────────────
+# ── Inbox (pending queue) ─────────────────────────────
 cmd_inbox() {
-  local tail_n=20 unread_only=false
+  local tail_n=20 show_logs=false
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --tail|-n) tail_n="$2"; shift 2 ;;
-      --unread|-u) unread_only=true; shift ;;
+      --logs|-l) show_logs=true; shift ;;
+      --unread|-u) shift ;; # kept for compat, no-op (inbox is now a queue)
       *) shift ;;
     esac
   done
+
+  # --logs: show history from daemon log instead of inbox queue
+  if [[ "$show_logs" == "true" ]]; then
+    if [[ ! -f "$MESH_LOG" ]]; then
+      echo -e "${YELLOW}📭${NC} No daemon log found at ${MESH_LOG}"
+      return 0
+    fi
+    echo -e "${BOLD}📜 Message History${NC} (from daemon logs, last ${tail_n})"
+    echo ""
+    grep -E '(✉️|📩)' "$MESH_LOG" | tail -n "$tail_n" | while IFS= read -r line; do
+      echo -e "  ${line}"
+    done
+    return 0
+  fi
 
   if [[ ! -f "$MESH_INBOX" ]]; then
     echo -e "${YELLOW}📭${NC} No inbox file found at ${MESH_INBOX}"
@@ -135,8 +151,14 @@ cmd_inbox() {
   fi
 
   local count
-  count=$(wc -l < "$MESH_INBOX" | tr -d ' ')
-  echo -e "${BOLD}📬 Inbox${NC} (${count} total, showing last ${tail_n})"
+  count=$(grep -c . "$MESH_INBOX" 2>/dev/null || echo "0")
+  
+  if [[ "$count" -eq 0 ]]; then
+    echo -e "${GREEN}✅${NC} Aucun message en attente de traitement"
+    return 0
+  fi
+
+  echo -e "${BOLD}📬 Messages en attente de traitement${NC} (${count} pending)"
   echo ""
 
   tail -n "$tail_n" "$MESH_INBOX" | while IFS='|' read -r ts type from text; do
@@ -212,7 +234,7 @@ cmd_status() {
     fi
     local msg_count
     msg_count=$(wc -l < "$MESH_INBOX" | tr -d ' ')
-    echo -e "  📊 Messages: ${msg_count} in inbox"
+    echo -e "  📊 Queue: ${msg_count} pending"
   else
     echo -e "  📭 Inbox: ${YELLOW}no messages yet${NC}"
   fi

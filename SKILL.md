@@ -6,6 +6,8 @@
 
 Provides a bash CLI (`meshtastic.sh`) to interact with the running Meshtastic daemon (Python bridge + Node.js watcher). Also includes TypeScript utilities for parsing, formatting, and stats.
 
+**Inbox = temporary queue:** Messages appear in inbox on receive and are automatically purged after successful webhook delivery. Only unprocessed messages remain. Full message history is in the daemon's rotating logs (`meshtastic.sh inbox --logs`).
+
 ## Requirements
 
 - **bash** (4.0+)
@@ -20,8 +22,9 @@ meshtastic.sh send --channel "Hello mesh!"
 meshtastic.sh send --dm "!a1b2c3d4" "Private message"
 meshtastic.sh reply "Thanks!"
 
-# Read inbox
-meshtastic.sh inbox --tail 10 --unread
+# Read pending messages (inbox = temporary queue, purged after webhook delivery)
+meshtastic.sh inbox --tail 10
+meshtastic.sh inbox --logs            # Full history from daemon logs
 
 # Status & monitoring
 meshtastic.sh status        # Human-readable status
