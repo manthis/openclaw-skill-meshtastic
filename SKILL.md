@@ -32,6 +32,37 @@ meshtastic.sh nodes         # Visible nodes with positions/SNR
 meshtastic.sh health        # JSON output for heartbeat integration
 ```
 
+## 🤖 OpenClaw Auto-Reply Rules
+
+**CRITICAL:** When replying to Meshtastic messages from OpenClaw:
+
+### Use REPLY| prefix for context-aware replies
+
+```bash
+# ✅ CORRECT: Auto-replies to last message (DM → DM, channel → channel)
+echo "REPLY|Got it, thanks!" > /tmp/mesh_outbox.txt
+
+# ❌ WRONG: Always sends to public channel (ignores DM context)
+echo "Got it, thanks!" > /tmp/mesh_outbox.txt
+```
+
+### How REPLY| works
+
+- Daemon tracks last message context in `/tmp/mesh_context.json`
+- `REPLY|text` → Sends to correct destination automatically
+  - If last message was DM → sends DM back
+  - If last message was channel → sends to channel
+- Plain text (no prefix) → **always goes to public channel**
+
+### Manual DM (without REPLY)
+
+```bash
+# Send DM to specific node (bypass context)
+echo "DM|!69573c02|Private message" > /tmp/mesh_outbox.txt
+```
+
+**Rule of thumb:** Always use `REPLY|` when responding to Meshtastic messages in OpenClaw, unless you explicitly want to broadcast to the channel.
+
 ## Health Check Integration
 
 For `HEARTBEAT.md`, use:
