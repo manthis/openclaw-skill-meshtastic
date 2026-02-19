@@ -29,7 +29,7 @@ chmod +x meshtastic.sh
 |---------|-------------|
 | 📤 **Send Messages** | Channel broadcast or direct messages to specific nodes |
 | ↩️ **Auto-Reply** | Reply to the last received message (DM or channel) |
-| 📬 **Inbox** | View received messages with filtering |
+| 📬 **Inbox Queue** | View pending messages (auto-purged after webhook delivery) |
 | 📊 **Status** | Daemon health, serial connection, message stats |
 | 📡 **Node List** | Visible nodes with GPS, SNR, and last seen |
 | 🏥 **Health JSON** | Machine-readable health check for automation |
@@ -52,9 +52,10 @@ chmod +x meshtastic.sh
 ./meshtastic.sh reply "Got it, thanks!"
 ```
 
-### View recent inbox
+### View pending messages (inbox = queue)
 ```bash
-./meshtastic.sh inbox --tail 5
+./meshtastic.sh inbox --tail 5        # Pending messages awaiting webhook delivery
+./meshtastic.sh inbox --logs           # Full history from daemon logs
 ```
 
 ### Check daemon status
